@@ -1,3 +1,4 @@
+
 //ゲームの骨組み
 
 //########## ヘッダーファイル読み込み ##########
@@ -55,6 +56,8 @@ typedef STRUCT_GAZOU GAZOU;
 GAZOU	BackGround;				//背景の画像
 GAZOU	UFO;					//UFOの画像
 
+WNDPROC WndProc;				//ウィンドウプロシージャのアドレス
+
 char AllKeyState[256];			//すべてのキーの状態が入る
 
 //FPS関連
@@ -64,6 +67,8 @@ float CalcFps;							//計算結果
 int SampleNumFps = GAME_FPS_SPEED;		//平均を取るサンプル数
 
 int HFont_tanu_32;						//フォントのハンドル
+
+BOOL IsWM_CREATE = FALSE;				//WM_CREATEが正常に動作したか判断する
 
 int GameSceneNow = (int)GAME_SCENE_TITLE;//最初のゲーム画面をタイトルに設定
 
@@ -90,11 +95,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 {
 	ChangeWindowMode(TRUE);										//ウィンドウモードに設定
 	SetGraphMode(GAME_WIDTH, GAME_HEIGHT, GAME_COLOR);			//指定の数値で画面を表示する
-	SetWindowStyleMode(SET_WINDOW_ST_MODE_DEFAULT);			//タイトルバー
+	SetWindowStyleMode(SET_WINDOW_ST_MODE_TITLE_NONE);			//タイトルバーなし
+
 	SetMainWindowText(TEXT(GAME_WINDOW_NAME));					//タイトルの文字
+
+			//フック→WM_CLOSEなどのメッセージを引っ掛けて取得する
+	SetHookWinProc(MY_WNDPROC);	//ウィンドウプロシージャの設定
 
 	if (DxLib_Init() == -1) { return -1; }						//ＤＸライブラリ初期化処理
 
+	if (IsWM_CREATE == FALSE) { MessageBox(NULL, "WM_CREATE：失敗", "ERROR", MB_OK); return -1; }	//WM_CREATEでエラー終了
 
 	SetDrawScreen(DX_SCREEN_BACK);								//Draw系関数は裏画面に描画
 
@@ -278,6 +288,49 @@ VOID MY_DRAW_PLAY_INFO(VOID)
 	return;
 }
 
+//########## ウィンドウプロシージャ関数 ##########
+LRESULT CALLBACK MY_WNDPROC(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
+{
+	switch (msg)
+	{
+
+	case WM_CREATE:	//ウィンドウの生成＆初期化
+
+		//フォントを一時的に読み込み
+		if (AddFontResourceEx(FNT_TANU_PATH, FR_PRIVATE, NULL) == 0) { IsWM_CREATE = FALSE;	 return -1; }
+
+		IsWM_CREATE = TRUE;	//WM_CREATE正常終了
+
+		return 0;
+
+	case WM_CLOSE:		//閉じるボタンを押したとき
+
+		MessageBox(hwnd, TEXT("ゲームを終了します"), TEXT("終了メッセージ"), MB_OK);
+		break;
+
+	case WM_RBUTTONDOWN:	//マウスの右ボタンを押したとき
+
+		SendMessage(hwnd, WM_CLOSE, 0, 0);		//WM_CLOSEメッセージをキューに追加
+		break;
+
+	case WM_LBUTTONDOWN:	//マウスの左ボタンを押したとき
+
+							//WM_NCLBUTTONDOWN(タイトルバーでマウスの左ボタンを押した)メッセージをすぐに発行
+		PostMessage(hwnd, WM_NCLBUTTONDOWN, (WPARAM)HTCAPTION, lp);
+		break;
+
+	case WM_DESTROY:	//ウィンドウが破棄された(なくなった)とき
+
+		//一時的に読み込んだフォントを削除
+		RemoveFontResourceEx(FNT_TANU_PATH, FR_PRIVATE, NULL);
+
+		PostQuitMessage(0);		//メッセージキューに WM_QUIT を送る
+		return 0;
+	}
+
+	//デフォルトのウィンドウプロシージャ関数を呼び出す
+	return DefWindowProc(hwnd, msg, wp, lp);
+}
 
 //########## キーの入力状態を更新する関数 ##########
 VOID MY_ALL_KEYDOWN_UPDATE(VOID)
