@@ -8,7 +8,8 @@
 #define GAME_HEIGHT	600		//画面の縦の大きさ
 #define GAME_COLOR	32		//画面のカラービット
 
-#define GAME_BACKGOUND		"BACK\\space2.jpg"				//背景画像
+#define GAME_BACKGOUND		"BACK\\space3.jpg"				//背景画像
+#define GAME_CHARA_UFO		"CHARA\\UFO_mini.png"	//UFOの画像
 
 #define FNT_TANU_PATH	TEXT("MY_FONT\\TanukiMagic.ttf")	//フォントの場所
 #define FNT_TANU_NAME	TEXT("たぬき油性マジック")			//フォントの名前
@@ -42,7 +43,7 @@ struct STRUCT_GAZOU {
 	int C_Height;			//縦の中心位置
 	int MoveSpeed;			//移動速度
 	BOOL IsView;			//表示判定
-	int HP;					//体力
+
 };
 
 
@@ -52,8 +53,7 @@ typedef STRUCT_GAZOU GAZOU;
 
 //########## グローバル変数 ##########
 GAZOU	BackGround;				//背景の画像
-
-WNDPROC WndProc;				//ウィンドウプロシージャのアドレス
+GAZOU	UFO;					//UFOの画像
 
 char AllKeyState[256];			//すべてのキーの状態が入る
 
@@ -64,8 +64,6 @@ float CalcFps;							//計算結果
 int SampleNumFps = GAME_FPS_SPEED;		//平均を取るサンプル数
 
 int HFont_tanu_32;						//フォントのハンドル
-
-BOOL IsWM_CREATE = FALSE;				//WM_CREATEが正常に動作したか判断する
 
 int GameSceneNow = (int)GAME_SCENE_TITLE;//最初のゲーム画面をタイトルに設定
 
@@ -92,20 +90,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 {
 	ChangeWindowMode(TRUE);										//ウィンドウモードに設定
 	SetGraphMode(GAME_WIDTH, GAME_HEIGHT, GAME_COLOR);			//指定の数値で画面を表示する
-	SetWindowStyleMode(SET_WINDOW_ST_MODE_TITLE_NONE);			//タイトルバーなし
+	SetWindowStyleMode(SET_WINDOW_ST_MODE_DEFAULT);			//タイトルバー
 	SetMainWindowText(TEXT(GAME_WINDOW_NAME));					//タイトルの文字
-
-		//フック→WM_CLOSEなどのメッセージを引っ掛けて取得する
-	SetHookWinProc(MY_WNDPROC);	//ウィンドウプロシージャの設定
 
 	if (DxLib_Init() == -1) { return -1; }						//ＤＸライブラリ初期化処理
 
-	if (IsWM_CREATE == FALSE) { MessageBox(NULL, "WM_CREATE：失敗", "ERROR", MB_OK); return -1; }	//WM_CREATEでエラー終了
 
 	SetDrawScreen(DX_SCREEN_BACK);								//Draw系関数は裏画面に描画
 
 	//画像を読み込む
 	if (MY_GAZOU_LOAD(&BackGround, 0, 0, GAME_BACKGOUND) == FALSE) { return -1; }
+	if (MY_GAZOU_LOAD(&UFO, GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_CHARA_UFO) == FALSE) { return -1; }
 
 	//無限ループ
 	while (TRUE)
@@ -127,8 +122,51 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 			break;//タイトル画面の処理ここまで
 
-					//背景の描画
-			DrawGraph(BackGround.X, BackGround.Y, BackGround.Handle, TRUE);
+		case (int)GAME_SCENE_PLAY:
+
+			if (AllKeyState[KEY_INPUT_UP] != 0)				//上に移動
+			{
+				if (UFO.Y - UFO.MoveSpeed > 0)	//自分の上の位置が、画面の一番上の位置よりも大きいとき
+				{
+					UFO.Y -= UFO.MoveSpeed;
+				}
+			}
+			else if (AllKeyState[KEY_INPUT_DOWN] != 0)		//下に移動
+			{
+				if (UFO.Y + UFO.Height + UFO.MoveSpeed < GAME_HEIGHT)	//自分の下の位置が、画面の一番下の位置よりも小さいとき
+				{
+					UFO.Y += UFO.MoveSpeed;
+				}
+			}
+			if (AllKeyState[KEY_INPUT_LEFT] != 0)			//左に移動
+			{
+				if (UFO.X - UFO.MoveSpeed > 0)			//自分の左の位置が、画面の一番左の位置よりも大きいとき
+				{
+					UFO.X -= UFO.MoveSpeed;
+				}
+			}
+			else if (AllKeyState[KEY_INPUT_RIGHT] != 0)		//右に移動
+			{
+				if (UFO.X + UFO.Width + UFO.MoveSpeed < GAME_WIDTH)		//自分の右の位置が、画面の一番右の位置よりも小さいとき
+				{
+					UFO.X += UFO.MoveSpeed;
+				}
+			
+		}
+
+		//背景の描画
+		DrawGraph(BackGround.X, BackGround.Y, BackGround.Handle, TRUE);
+
+		if (UFO.IsView == TRUE)
+		{
+			DrawGraph(UFO.X, UFO.Y, UFO.Handle, TRUE);//UFOを描画
+		}
+
+		//四角形の中を塗りつぶさないで描画
+
+		DrawBox(UFO.X, UFO.Y, UFO.X + UFO.Width, UFO.Y + UFO.Height, GetColor(0, 255, 255), FALSE);
+
+		break;//プレイ画面の処理ここまで
 		case (int)GAME_SCENE_END://エンド画面の処理ここから
 
 			MY_GAME_END();
@@ -151,6 +189,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	DeleteFontToHandle(HFont_tanu_32);	//フォントのハンドルを削除
 
 	DeleteGraph(BackGround.Handle);		//画像のハンドルを削除
+	DeleteGraph(UFO.Handle);		//画像のハンドルを削除
 
 	DxLib_End();		//ＤＸライブラリ使用の終了処理
 
@@ -185,7 +224,7 @@ VOID MY_GAME_TITLE(VOID)
 	DrawFormatString(GAME_WIDTH / 2 - TitleStringWidth1 / 2, GAME_HEIGHT / 2, GetColor(255, 255, 255), title1);
 
 	//表示する文字列
-	char title2[64] = "PUSH ENTER KEY -> GAME START";
+	char title2[64] = " GAME START";
 	//デフォルトのフォントを変更する
 	ChangeFont("MS 明朝", DX_CHARSET_DEFAULT);
 	//デフォルトのフォントサイズを変える
@@ -238,49 +277,7 @@ VOID MY_DRAW_PLAY_INFO(VOID)
 
 	return;
 }
-//########## ウィンドウプロシージャ関数 ##########
-LRESULT CALLBACK MY_WNDPROC(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
-{
-	switch (msg)
-	{
 
-	case WM_CREATE:	//ウィンドウの生成＆初期化
-
-		//フォントを一時的に読み込み
-		if (AddFontResourceEx(FNT_TANU_PATH, FR_PRIVATE, NULL) == 0) { IsWM_CREATE = FALSE;	 return -1; }
-
-		IsWM_CREATE = TRUE;	//WM_CREATE正常終了
-
-		return 0;
-
-	case WM_CLOSE:		//閉じるボタンを押したとき
-
-		MessageBox(hwnd, TEXT("ゲームを終了します"), TEXT("終了メッセージ"), MB_OK);
-		break;
-
-	case WM_RBUTTONDOWN:	//マウスの右ボタンを押したとき
-
-		SendMessage(hwnd, WM_CLOSE, 0, 0);		//WM_CLOSEメッセージをキューに追加
-		break;
-
-	case WM_LBUTTONDOWN:	//マウスの左ボタンを押したとき
-
-							//WM_NCLBUTTONDOWN(タイトルバーでマウスの左ボタンを押した)メッセージをすぐに発行
-		PostMessage(hwnd, WM_NCLBUTTONDOWN, (WPARAM)HTCAPTION, lp);
-		break;
-
-	case WM_DESTROY:	//ウィンドウが破棄された(なくなった)とき
-
-		//一時的に読み込んだフォントを削除
-		RemoveFontResourceEx(FNT_TANU_PATH, FR_PRIVATE, NULL);
-
-		PostQuitMessage(0);		//メッセージキューに WM_QUIT を送る
-		return 0;
-	}
-
-	//デフォルトのウィンドウプロシージャ関数を呼び出す
-	return DefWindowProc(hwnd, msg, wp, lp);
-}
 
 //########## キーの入力状態を更新する関数 ##########
 VOID MY_ALL_KEYDOWN_UPDATE(VOID)
