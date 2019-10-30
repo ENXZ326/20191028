@@ -11,6 +11,7 @@
 
 #define GAME_BACKGOUND		"BACK\\space3.jpg"				//背景画像
 #define GAME_CHARA_UFO		"CHARA\\UFO_mini.png"	//UFOの画像
+#define GAME_CHARA_CRAB		"CHARA\\CRAB2.png"
 
 #define FNT_TANU_PATH	TEXT("MY_FONT\\TanukiMagic.ttf")	//フォントの場所
 #define FNT_TANU_NAME	TEXT("たぬき油性マジック")			//フォントの名前
@@ -55,6 +56,7 @@ typedef STRUCT_GAZOU GAZOU;
 //########## グローバル変数 ##########
 GAZOU	BackGround;				//背景の画像
 GAZOU	UFO;					//UFOの画像
+GAZOU	CRAB;
 
 WNDPROC WndProc;				//ウィンドウプロシージャのアドレス
 
@@ -111,6 +113,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	//画像を読み込む
 	if (MY_GAZOU_LOAD(&BackGround, 0, 0, GAME_BACKGOUND) == FALSE) { return -1; }
 	if (MY_GAZOU_LOAD(&UFO, GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_CHARA_UFO) == FALSE) { return -1; }
+	if (MY_GAZOU_LOAD(&CRAB, 100, 100, GAME_CHARA_CRAB) == FALSE) { return -1;}
 
 	//無限ループ
 	while (TRUE)
@@ -119,7 +122,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 		if (ClearDrawScreen() != 0) { break; }	//画面を消去できなかったとき、強制終了
 
-		MY_ALL_KEYDOWN_UPDATE();				//押しているキー状態を取得
+		MY_ALL_KEYDOWN_UPDATE();				//押しているキー状態を取 得
 
 		MY_FPS_UPDATE();	//FPSの処理[更新]
 
@@ -163,7 +166,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				}
 			
 		}
-
+			/*if (UFO.IsView == TRUE)
+			{
+				if (UFO.X < CRAB.X + CRAB.Width &&
+					UFO.Y < CRAB.Y + CRAB.Height &&
+					UFO.X + UFO.Width > CRAB.X &&
+					UFO.Y + UFO.Height > CRAB.Y)
+				{
+					CRAB.IsView == FALSE;
+				}
+			}*/
 		//背景の描画
 		DrawGraph(BackGround.X, BackGround.Y, BackGround.Handle, TRUE);
 
@@ -172,9 +184,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			DrawGraph(UFO.X, UFO.Y, UFO.Handle, TRUE);//UFOを描画
 		}
 
+		if (CRAB.IsView == TRUE)
+		{
+			DrawGraph(CRAB.X, CRAB.Y, CRAB.Handle, TRUE);
+		}
+
 		//四角形の中を塗りつぶさないで描画
 
 		DrawBox(UFO.X, UFO.Y, UFO.X + UFO.Width, UFO.Y + UFO.Height, GetColor(0, 255, 255), FALSE);
+		DrawBox(CRAB.X, CRAB.Y, CRAB.X + CRAB.Width, CRAB.Y + CRAB.Height, GetColor(0, 255, 255), FALSE);
+
 
 		break;//プレイ画面の処理ここまで
 		case (int)GAME_SCENE_END://エンド画面の処理ここから
@@ -200,6 +219,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	DeleteGraph(BackGround.Handle);		//画像のハンドルを削除
 	DeleteGraph(UFO.Handle);		//画像のハンドルを削除
+	DeleteGraph(CRAB.Handle);
 
 	DxLib_End();		//ＤＸライブラリ使用の終了処理
 
