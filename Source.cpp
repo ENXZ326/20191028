@@ -1,23 +1,22 @@
 
-//ゲームの骨組み
-
 //########## ヘッダーファイル読み込み ##########
 #include "DxLib.h"
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 //########## マクロ定義 ##########
 #define GAME_WIDTH	800		//画面の横の大きさ
 #define GAME_HEIGHT	600		//画面の縦の大きさ
 #define GAME_COLOR	32		//画面のカラービット
 
-#define GAME_BACKGOUND		"BACK\\space3.jpg"				//背景画像
+#define GAME_BACKGOUND		"BACK\\space4.jpg"				//背景画像
 #define GAME_CHARA_UFO		"CHARA\\UFO_mini.png"	//UFOの画像
 #define GAME_CHARA_CRAB		"CHARA\\CRAB2.png"
 
 #define FNT_TANU_PATH	TEXT("MY_FONT\\TanukiMagic.ttf")	//フォントの場所
 #define FNT_TANU_NAME	TEXT("たぬき油性マジック")			//フォントの名前
 
-
-#define GAME_WINDOW_NAME	"GAME_TITLE_NAME"
+#define GAME_WINDOW_NAME	"?????"
 
 #define GAME_FPS_SPEED					   60
 
@@ -45,7 +44,6 @@ struct STRUCT_GAZOU {
 	int C_Height;			//縦の中心位置
 	int MoveSpeed;			//移動速度
 	BOOL IsView;			//表示判定
-
 };
 
 
@@ -55,10 +53,9 @@ typedef STRUCT_GAZOU GAZOU;
 
 //########## グローバル変数 ##########
 GAZOU	BackGround;				//背景の画像
-GAZOU	UFO;					//UFOの画像
-GAZOU	CRAB;
+GAZOU	UFO1;					//UFOの画像
+GAZOU	CRAB1;
 
-WNDPROC WndProc;				//ウィンドウプロシージャのアドレス
 
 char AllKeyState[256];			//すべてのキーの状態が入る
 
@@ -70,7 +67,7 @@ int SampleNumFps = GAME_FPS_SPEED;		//平均を取るサンプル数
 
 int HFont_tanu_32;						//フォントのハンドル
 
-BOOL IsWM_CREATE = FALSE;				//WM_CREATEが正常に動作したか判断する
+
 
 int GameSceneNow = (int)GAME_SCENE_TITLE;//最初のゲーム画面をタイトルに設定
 
@@ -97,23 +94,22 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 {
 	ChangeWindowMode(TRUE);										//ウィンドウモードに設定
 	SetGraphMode(GAME_WIDTH, GAME_HEIGHT, GAME_COLOR);			//指定の数値で画面を表示する
-	SetWindowStyleMode(SET_WINDOW_ST_MODE_TITLE_NONE);			//タイトルバーなし
+	SetWindowStyleMode(SET_WINDOW_ST_MODE_DEFAULT);			//タイトルバー
+	//SetWindowStyleMode(SET_WINDOW_ST_MODE_TITLE_NONE);			//タイトルバーなし
 
 	SetMainWindowText(TEXT(GAME_WINDOW_NAME));					//タイトルの文字
 
-			//フック→WM_CLOSEなどのメッセージを引っ掛けて取得する
-	SetHookWinProc(MY_WNDPROC);	//ウィンドウプロシージャの設定
 
 	if (DxLib_Init() == -1) { return -1; }						//ＤＸライブラリ初期化処理
 
-	if (IsWM_CREATE == FALSE) { MessageBox(NULL, "WM_CREATE：失敗", "ERROR", MB_OK); return -1; }	//WM_CREATEでエラー終了
 
 	SetDrawScreen(DX_SCREEN_BACK);								//Draw系関数は裏画面に描画
 
 	//画像を読み込む
 	if (MY_GAZOU_LOAD(&BackGround, 0, 0, GAME_BACKGOUND) == FALSE) { return -1; }
-	if (MY_GAZOU_LOAD(&UFO, GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_CHARA_UFO) == FALSE) { return -1; }
-	if (MY_GAZOU_LOAD(&CRAB, 100, 100, GAME_CHARA_CRAB) == FALSE) { return -1;}
+	if (MY_GAZOU_LOAD(&UFO1, GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_CHARA_UFO) == FALSE) { return -1; }
+	if (MY_GAZOU_LOAD(&CRAB1, 100, 100, GAME_CHARA_CRAB) == FALSE) { return -1;}
+
 
 	//無限ループ
 	while (TRUE)
@@ -139,60 +135,71 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 			if (AllKeyState[KEY_INPUT_UP] != 0)				//上に移動
 			{
-				if (UFO.Y - UFO.MoveSpeed > 0)	//自分の上の位置が、画面の一番上の位置よりも大きいとき
+				if (UFO1.Y - UFO1.MoveSpeed > 0)	//自分の上の位置が、画面の一番上の位置よりも大きいとき
 				{
-					UFO.Y -= UFO.MoveSpeed;
+					UFO1.Y -= UFO1.MoveSpeed;
 				}
 			}
 			else if (AllKeyState[KEY_INPUT_DOWN] != 0)		//下に移動
 			{
-				if (UFO.Y + UFO.Height + UFO.MoveSpeed < GAME_HEIGHT)	//自分の下の位置が、画面の一番下の位置よりも小さいとき
+				if (UFO1.Y + UFO1.Height + UFO1.MoveSpeed < GAME_HEIGHT)	//自分の下の位置が、画面の一番下の位置よりも小さいとき
 				{
-					UFO.Y += UFO.MoveSpeed;
+					UFO1.Y += UFO1.MoveSpeed;
 				}
 			}
 			if (AllKeyState[KEY_INPUT_LEFT] != 0)			//左に移動
 			{
-				if (UFO.X - UFO.MoveSpeed > 0)			//自分の左の位置が、画面の一番左の位置よりも大きいとき
+				if (UFO1.X - UFO1.MoveSpeed > 0)			//自分の左の位置が、画面の一番左の位置よりも大きいとき
 				{
-					UFO.X -= UFO.MoveSpeed;
+					UFO1.X -= UFO1.MoveSpeed;
 				}
 			}
 			else if (AllKeyState[KEY_INPUT_RIGHT] != 0)		//右に移動
 			{
-				if (UFO.X + UFO.Width + UFO.MoveSpeed < GAME_WIDTH)		//自分の右の位置が、画面の一番右の位置よりも小さいとき
+				if (UFO1.X + UFO1.Width + UFO1.MoveSpeed < GAME_WIDTH)		//自分の右の位置が、画面の一番右の位置よりも小さいとき
 				{
-					UFO.X += UFO.MoveSpeed;
+					UFO1.X += UFO1.MoveSpeed;
 				}
 			
 		}
-			/*if (UFO.IsView == TRUE)
+			
+		/*	if (UFO1.IsView == TRUE)
 			{
-				if (UFO.X < CRAB.X + CRAB.Width &&
-					UFO.Y < CRAB.Y + CRAB.Height &&
-					UFO.X + UFO.Width > CRAB.X &&
-					UFO.Y + UFO.Height > CRAB.Y)
+				if (CRAB1.IsView == TRUE)
 				{
-					CRAB.IsView == FALSE;
+					if (UFO1.X < CRAB1.X + CRAB1.Width &&
+						UFO1.Y < CRAB1.Y + CRAB1.Height &&
+						UFO1.X + UFO1.Width > CRAB1.X &&
+						UFO1.Y + UFO1.Height > CRAB1.Y)
+					{
+						CRAB1.IsView == FALSE;
+					}
 				}
 			}*/
+
 		//背景の描画
 		DrawGraph(BackGround.X, BackGround.Y, BackGround.Handle, TRUE);
 
-		if (UFO.IsView == TRUE)
+		if (UFO1.IsView == TRUE)
 		{
-			DrawGraph(UFO.X, UFO.Y, UFO.Handle, TRUE);//UFOを描画
+			DrawGraph(UFO1.X, UFO1.Y, UFO1.Handle, TRUE);//UFOを描画
 		}
 
-		if (CRAB.IsView == TRUE)
+		if (CRAB1.IsView == TRUE)
 		{
-			DrawGraph(CRAB.X, CRAB.Y, CRAB.Handle, TRUE);
+			DrawGraph(CRAB1.X, CRAB1.Y, CRAB1.Handle, TRUE);
+			DrawBox(CRAB1.X, CRAB1.Y, CRAB1.X + CRAB1.Width, CRAB1.Y + CRAB1.Height, GetColor(255, 0, 0), FALSE);
 		}
 
 		//四角形の中を塗りつぶさないで描画
 
-		DrawBox(UFO.X, UFO.Y, UFO.X + UFO.Width, UFO.Y + UFO.Height, GetColor(0, 255, 255), FALSE);
-		DrawBox(CRAB.X, CRAB.Y, CRAB.X + CRAB.Width, CRAB.Y + CRAB.Height, GetColor(0, 255, 255), FALSE);
+		DrawBox(UFO1.X, UFO1.Y, UFO1.X + UFO1.Width, UFO1.Y + UFO1.Height, GetColor(0, 255, 255), FALSE);
+		DrawBox(CRAB1.X, CRAB1.Y, CRAB1.X + CRAB1.Width, CRAB1.Y + CRAB1.Height, GetColor(0, 255, 255), FALSE);
+
+		if (CRAB1.IsView == FALSE)
+		{
+			GameSceneNow = (int)GAME_SCENE_END;//エンド画面にする
+		}
 
 
 		break;//プレイ画面の処理ここまで
@@ -218,8 +225,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	DeleteFontToHandle(HFont_tanu_32);	//フォントのハンドルを削除
 
 	DeleteGraph(BackGround.Handle);		//画像のハンドルを削除
-	DeleteGraph(UFO.Handle);		//画像のハンドルを削除
-	DeleteGraph(CRAB.Handle);
+	DeleteGraph(UFO1.Handle);			//画像のハンドルを削除
+	DeleteGraph(CRAB1.Handle);			//画像のハンドルを削除
 
 	DxLib_End();		//ＤＸライブラリ使用の終了処理
 
@@ -239,7 +246,7 @@ VOID MY_GAME_TITLE(VOID)
 	DrawGraph(BackGround.X, BackGround.Y, BackGround.Handle, TRUE);
 
 	//表示する文字列
-	char title1[64] = "タイトル画面";
+	char title1[64] = "あ~そ`ぼ~う";
 	//デフォルトのフォントを変更する
 	ChangeFont("MS ゴシック", DX_CHARSET_DEFAULT);
 	//デフォルトのフォントサイズを変える
@@ -298,6 +305,7 @@ VOID MY_GAME_END(VOID)
 	DrawGraph(BackGround.X, BackGround.Y, BackGround.Handle, TRUE);
 
 
+
 	return;
 }
 //########## プレイ画面の情報を描画する関数 ##########
@@ -308,49 +316,7 @@ VOID MY_DRAW_PLAY_INFO(VOID)
 	return;
 }
 
-//########## ウィンドウプロシージャ関数 ##########
-LRESULT CALLBACK MY_WNDPROC(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
-{
-	switch (msg)
-	{
 
-	case WM_CREATE:	//ウィンドウの生成＆初期化
-
-		//フォントを一時的に読み込み
-		if (AddFontResourceEx(FNT_TANU_PATH, FR_PRIVATE, NULL) == 0) { IsWM_CREATE = FALSE;	 return -1; }
-
-		IsWM_CREATE = TRUE;	//WM_CREATE正常終了
-
-		return 0;
-
-	case WM_CLOSE:		//閉じるボタンを押したとき
-
-		MessageBox(hwnd, TEXT("ゲームを終了します"), TEXT("終了メッセージ"), MB_OK);
-		break;
-
-	case WM_RBUTTONDOWN:	//マウスの右ボタンを押したとき
-
-		SendMessage(hwnd, WM_CLOSE, 0, 0);		//WM_CLOSEメッセージをキューに追加
-		break;
-
-	case WM_LBUTTONDOWN:	//マウスの左ボタンを押したとき
-
-							//WM_NCLBUTTONDOWN(タイトルバーでマウスの左ボタンを押した)メッセージをすぐに発行
-		PostMessage(hwnd, WM_NCLBUTTONDOWN, (WPARAM)HTCAPTION, lp);
-		break;
-
-	case WM_DESTROY:	//ウィンドウが破棄された(なくなった)とき
-
-		//一時的に読み込んだフォントを削除
-		RemoveFontResourceEx(FNT_TANU_PATH, FR_PRIVATE, NULL);
-
-		PostQuitMessage(0);		//メッセージキューに WM_QUIT を送る
-		return 0;
-	}
-
-	//デフォルトのウィンドウプロシージャ関数を呼び出す
-	return DefWindowProc(hwnd, msg, wp, lp);
-}
 
 //########## キーの入力状態を更新する関数 ##########
 VOID MY_ALL_KEYDOWN_UPDATE(VOID)
